@@ -72,7 +72,7 @@ function EVC(options) {
           } else if(domain.indexOf("partner2.com")>-1){
               partner = "partner2";
           } else {
-              partner = "hocal";
+              partner = "specialcoveragenews";
           }
       }
       if(partnerPassed!=partner){
@@ -82,7 +82,6 @@ function EVC(options) {
 
       if (req.method === 'GET' && req.headers.express_view_cache !== cacheKey) {
         var urlToUse = req.originalUrl;
-
         var responsiveSuffix = '';
           // get device type (mobile/desktop)
         if (!isResponsive) {
@@ -109,11 +108,11 @@ function EVC(options) {
             }
           }
         }
-
+        var  updateCacheData = (query && query.updateCacheData=="1");
         var key = urlToUse,
-            responsiveKey = urlToUse + responsiveSuffix,
+            responsiveKey = urlToUse + responsiveSuffix+"#"+partner,
           data = {};
-          console.log("key used in caching module================="+ key);
+          
         async.waterfall([
           function (cb) {
             async.parallel({
@@ -132,7 +131,7 @@ function EVC(options) {
             });
           },
           function (dataFound, age, cb) {
-            if (dataFound) {
+            if (dataFound && !updateCacheData) {
               data.Expires = new Date(Date.now() + age).toUTCString();
               data['Last-Modified'] = new Date(dataFound.savedAt).toUTCString();
               data['Content-Type'] = dataFound.contentType;
