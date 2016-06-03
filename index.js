@@ -64,18 +64,9 @@ function EVC(options) {
     isResponsive = typeof isResponsive === "undefined" ? false : isResponsive;
 
     return function (req, res, next) {
-      var partner = req.headers['partner'];
-      if(!partner){ //to be removed code as it will come ngnix
-          var domain = req.vhost.hostname;
-          if(domain.indexOf("partner1.com")>-1){
-              partner = "partner1";
-          } else if(domain.indexOf("partner2.com")>-1){
-              partner = "partner2";
-          } else {
-              partner = "specialcoveragenews";
-          }
-      }
-      if(partnerPassed!=partner){
+      var partner = req.partner;
+      var reqType = req.pageRequestType;
+      if(!partner || reqType!="page" || partnerPassed!=partner){
         next();
         return;
       }
@@ -146,15 +137,35 @@ function EVC(options) {
                 flagFollowRedirection = followRedirection;
               }
               headers.express_view_cache = cacheKey;
+              var original = "";
+              if(req.originalUrl.indexOf("partner=")>-1){
+                original = req.originalUrl;
+              } else {
+                if(req.originalUrl.indexOf("?")>-1){
+                  original = req.originalUrl+"&partner="+partner;
+                } else {
+                  original = req.originalUrl+"?partner="+partner;
+                }
+              }
+
+              var url ='http://localhost:' + config.appPort +original;
               curl({
                 'method': 'GET',
                 'headers': headers,
-                'url': 'http://localhost:' + config.appPort + req.originalUrl,
+                'url': url,
                 'followRedirect': flagFollowRedirection
               }, function (error, response, body) {
                 if (error) {
                   cb(error);
                 } else {
+                  // var a =  response.req.path;
+                  // var b = 
+                  console.log("response.req.path : "+response.req.path+"original : "+original);
+                  if(response.req.path.indexOf("original")!=0 && original.indexOf(response.req.path)!=0){ //redirect in response
+                    console.log("url did not match, redirecting to correct URL"+response.req.path);
+                    res.redirect(301,response.req.path);
+                    return;
+                  }
                   data.Expires = new Date(Date.now() + ttlInMilliSeconds).toUTCString();
                   data['Last-Modified'] = new Date().toUTCString();
                   data['Content-Type'] = response.headers['content-type'];
@@ -200,7 +211,9 @@ function EVC(options) {
             next(error);
           } else {
             if(data.statusCode===301) {
-                return res.redirect(301,data.redirectUrl);
+                res.setHeader(express_view_cache,"");
+                res.redirect(301,data.redirectUrl);
+                return res.end();
               } else {
                 if(data.cookie){
                   res.setHeader('Set-Cookie', data.cookie);  
