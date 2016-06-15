@@ -66,7 +66,8 @@ function EVC(options) {
     return function (req, res, next) {
       var partner = req.partner;
       var reqType = req.pageRequestType;
-      if(!partner || reqType!="page" || partnerPassed!=partner){
+      var search = req.query && req.query.search ? true :false;
+      if(!partner || search || reqType!="page" || partnerPassed!=partner){
         next();
         return;
       }
@@ -160,9 +161,7 @@ function EVC(options) {
                 } else {
                   // var a =  response.req.path;
                   // var b = 
-                  console.log("response.req.path : "+response.req.path+"original : "+original);
                   if(response.req.path.indexOf("original")!=0 && original.indexOf(response.req.path)!=0){ //redirect in response
-                    console.log("url did not match, redirecting to correct URL"+response.req.path);
                     res.redirect(301,response.req.path);
                     return;
                   }
